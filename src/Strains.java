@@ -12,8 +12,29 @@ public class Strains {
      * Example: "ACGT" -> "AGT" is 1 (delete C). "GATTACA" -> "GCATGCA" needs 3.
      */
     public static int editDistance(String a, String b) {
-        // TODO Mission 1
-        return -1;
+        int n = a.length();
+        int m = b.length();
+
+        // d[i][j] = минимум операций, чтобы превратить первые i букв A в первые j букв B
+        int[][] d = new int[n + 1][m + 1];
+
+        // базовые случаи
+        for (int i = 0; i <= n; i++) d[i][0] = i;   // из i букв в пустую строку: i удалений
+        for (int j = 0; j <= m; j++) d[0][j] = j;   // из пустой строки в j букв: j вставок
+
+        // заполняем таблицу слева направо, сверху вниз
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) {
+                int cost = (a.charAt(i - 1) == b.charAt(j - 1)) ? 0 : 1;
+
+                int replace = d[i - 1][j - 1] + cost; // заменить (или оставить, если буквы равны)
+                int delete  = d[i - 1][j] + 1;        // удалить букву A
+                int insert  = d[i][j - 1] + 1;        // вставить букву B
+
+                d[i][j] = Math.min(replace, Math.min(delete, insert));
+            }
+        }
+        return d[n][m];
     }
 
     /**
