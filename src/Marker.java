@@ -71,7 +71,74 @@ public class Marker {
      * Example: a = "ACGTAC", b = "TTACGT", k = 4: the words of a are ACGT, CGTA, GTAC; only ACGT is in b, so the answer is 1.
      */
     public static int sharedWords(String a, String b, int k) {
-        // TODO Mission 4
-        return -1;
+        if (k <= 0 || a.length() < k || b.length() < k) return 0;
+
+        long[] hashA = rollingHashes(a, k);   // hashA[i] = хеш окна A[i..i+k-1]
+        long[] hashB = rollingHashes(b, k);   // hashB[j] = хеш окна B[j..j+k-1]
+
+        // хеш -> позиции окон B с таким хешем
+        Map<Long, List<Integer>> windowsOfB = new HashMap<>();
+        for (int j = 0; j < hashB.length; j++) {
+            windowsOfB.computeIfAbsent(hashB[j], x -> new ArrayList<>()).add(j);
+        }
+
+        int count = 0;
+        for (int i = 0; i < hashA.length; i++) {
+            List<Integer> candidates = windowsOfB.get(hashA[i]);
+            if (candidates == null) continue;               // такого хеша нет в B: слова точно нет
+
+            for (int j : candidates) {
+                if (sameLetters(a, i, b, j, k)) {           // хеши равны: проверяем сами буквы
+                    count++;                                // позиция i считается один раз
+                    break;
+                }
+            }
+        }
+        return count;
+    }
+
+    private static final long BASE = 257;
+    private static final long MOD = 1_000_000_007L;
+
+    private static int code(char c) {
+        return switch (c) {
+            case 'A' -> 1;
+            case 'C' -> 2;
+            case 'G' -> 3;
+            case 'T' -> 4;
+            default -> throw new IllegalArgumentException("Unexpected letter: " + c);
+        };
+    }
+
+    /** Хеши всех окон длины k строки s: первый считаем напрямую, остальные сдвигом за O(1). */
+    private static long[] rollingHashes(String s, int k) {
+        int count = s.length() - k + 1;
+        long[] hashes = new long[count];
+
+        long pow = 1;                                       // BASE^(k-1) mod MOD
+        for (int t = 1; t < k; t++) pow = pow * BASE % MOD;
+
+        long h = 0;
+        for (int t = 0; t < k; t++) {                       // хеш первого окна
+            h = (h * BASE + code(s.charAt(t))) % MOD;
+        }
+        hashes[0] = h;
+
+        for (int i = 1; i < count; i++) {
+            // 1) убрать старую первую букву (+ MOD, чтобы число не стало отрицательным)
+            h = (h - code(s.charAt(i - 1)) * pow % MOD + MOD) % MOD;
+            // 2) сдвинуть и добавить новую последнюю букву
+            h = (h * BASE + code(s.charAt(i + k - 1))) % MOD;
+            hashes[i] = h;
+        }
+        return hashes;
+    }
+
+    /** Сравнивает k букв A[i..] и B[j..] по одной. */
+    private static boolean sameLetters(String a, int i, String b, int j, int k) {
+        for (int t = 0; t < k; t++) {
+            if (a.charAt(i + t) != b.charAt(j + t)) return false;
+        }
+        return true;
     }
 }
